@@ -6,9 +6,12 @@ import json
 class PubsubMiddleware:
     """Middleware for pubsub messages"""
 
-    def __init__(self, application, *, content_type="application/json"):
+    def __init__(
+        self, application, *, content_type="application/json", allow_attributes=True
+    ):
         self.application = application
         self.content_type = content_type
+        self.allow_attributes = allow_attributes
 
     def __call__(self, environ, start_response):
         iterable = None
@@ -27,6 +30,19 @@ class PubsubMiddleware:
             message = json.loads(body)
             data = message["message"]["data"]
             pubsub_message = base64.b64decode(data)
+
+            # Check if attributes were supplied
+            if not self.allow_attributes:
+                if message["message"]["attributes"]:
+                    attrs = ", ".join(
+                        [
+                            f"{key!r}={value!r}"
+                            for key, value in message["message"]["attributes"].items()
+                        ]
+                    )
+                    raise ValueError(
+                        f"PubSub attributes are not allowed, but found: {attrs}"
+                    )
 
             wsgi_input = io.BytesIO(pubsub_message)
             content_length = wsgi_input.getbuffer().nbytes
