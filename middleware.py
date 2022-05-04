@@ -57,12 +57,7 @@ class PubsubMiddleware:
         return self.application(environ, start_response)
 
     def on_error(self, attributes):
-        attrs = ", ".join(
-            [
-                f"{key!r}={value!r}"
-                for key, value in attributes.items()
-            ]
-        )
+        attrs = ", ".join([f"{key!r}={value!r}" for key, value in attributes.items()])
         bad_req = BadRequest(
             f"PubSub attributes are not allowed, but found these attributes: {attrs}"
         )
