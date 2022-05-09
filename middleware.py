@@ -4,7 +4,8 @@ import json
 import typing
 from urllib.parse import quote_plus, urlencode
 
-from wsgi_types import WSGIApp, Environ, StartResponse
+if typing.TYPE_CHECKING:
+    from _typeshed.wsgi import WSGIApplication, WSGIEnvironment, StartResponse
 
 
 class PubsubMiddleware:
@@ -12,7 +13,7 @@ class PubsubMiddleware:
 
     def __init__(
         self,
-        application: WSGIApp,
+        application: "WSGIApplication",
         *,
         content_type: str = "application/json",
         allow_attributes: bool = True,
@@ -39,7 +40,7 @@ class PubsubMiddleware:
         self.attributes_to_query = attributes_to_query
 
     def __call__(
-        self, environ: Environ, start_response: StartResponse
+        self, environ: "WSGIEnvironment", start_response: "StartResponse"
     ) -> typing.Iterable[bytes]:
 
         if environ["REQUEST_METHOD"] != "POST":
@@ -83,7 +84,7 @@ class PubsubMiddleware:
 
         return self.application(environ, start_response)
 
-    def on_error(self, attributes: typing.Dict[str, str]) -> WSGIApp:
+    def on_error(self, attributes: typing.Dict[str, str]) -> "WSGIApplication":
         attrs = ", ".join([f"{key!r}={value!r}" for key, value in attributes.items()])
         resp = AttributeException(
             f"PubSub attributes are not allowed, but found these attributes: {attrs}"
@@ -94,12 +95,12 @@ class PubsubMiddleware:
 class AttributeException:
     """Default error response to return when attributes are present but disallowed."""
 
-    def __init__(self, description) -> None:
+    def __init__(self, description: str) -> None:
         """Init attribute exception."""
         self.description = description
 
     def __call__(
-        self, environ: Environ, start_response: StartResponse
+        self, environ: "WSGIEnvironment", start_response: "StartResponse"
     ) -> typing.Iterable[bytes]:
         status_message = "400 Bad Request"
         body = self.get_body(environ)
@@ -109,14 +110,14 @@ class AttributeException:
         return [body]
 
     def get_headers(
-        self, environ: typing.Optional[Environ] = None
+        self, environ: typing.Optional["WSGIEnvironment"] = None
     ) -> typing.List[typing.Tuple[str, str]]:
         """Get response headers."""
         return [
             ("content-type", "application/json"),
         ]
 
-    def get_body(self, environ: typing.Optional[Environ] = None) -> bytes:
+    def get_body(self, environ: typing.Optional["WSGIEnvironment"] = None) -> bytes:
         """Get response body."""
         body = {
             "status": 400,
